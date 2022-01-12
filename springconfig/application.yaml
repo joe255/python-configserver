@@ -1,0 +1,16 @@
+spring:
+  profiles:
+    active: git, vault
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/joe255/testconfig-repo
+          order: 2
+        vault:
+          host: vault
+          port: 8200
+          scheme: http
+          backend: secret
+          kvVersion: 2
+          order: 1

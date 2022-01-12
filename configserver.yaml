@@ -1,0 +1,11 @@
+vault: http://localhost:8200
+config:
+- prefix: default
+  github: joe255/testconfig-repo
+  vault: secret
+- prefix: apps
+  github: joe255/testconfig-repo
+  vault: secret
+- prefix: bapps
+  github: joe255/testconfig-repo
+  vault: baz
