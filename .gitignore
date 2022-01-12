@@ -1,3 +1,5 @@
 __pycache__
 testspring/target
 **/*.log
+*.env
+*.local

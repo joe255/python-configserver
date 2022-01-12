@@ -25,12 +25,12 @@ class ConfigserverTest(IsolatedAsyncioTestCase):
         return super().tearDown()
 
     async def test_retrieve_config(self):
-        value = await configserver.allPara(prefix="config", application="test",
+        value = await configserver.endpoint_application_profile_label(prefix="config", application="test",
                                            profile="test", label="test", x_config_token="token")
         self.assertEqual(len(value['propertySources']), 2)
 
     async def test_retrieve_config_less_paras(self):
-        value = await configserver.appprofile(prefix="config", application="test",
+        value = await configserver.endpoint_application_profile(prefix="config", application="test",
                                               profile="test", x_config_token="token")
         self.assertEqual(len(value['propertySources']), 2)
         self.assertTrue("https://github.com/github/application-test.yaml" in [
@@ -39,7 +39,7 @@ class ConfigserverTest(IsolatedAsyncioTestCase):
                         for propertySource in value['propertySources']])
         self.assertTrue({"asd": "bsd"} in [propertySource['source'] for propertySource in value['propertySources'] if propertySource['name'] == "https://github.com/github/application-test.yaml"])
         self.assertTrue({"secret": "credentials"} in [propertySource['source'] for propertySource in value['propertySources'] if propertySource['name'] == "vault:test,test"])
-        value = await configserver.appprofile(prefix="config", application="test",
+        value = await configserver.endpoint_application_profile(prefix="config", application="test",
                                               profile="dev", x_config_token="token")
         self.assertEqual(len(value['propertySources']), 2)
         self.assertTrue("https://github.com/github/application-dev.yaml" in [
@@ -48,7 +48,7 @@ class ConfigserverTest(IsolatedAsyncioTestCase):
                         for propertySource in value['propertySources']])
         self.assertTrue({"query": "string"} in [propertySource['source'] for propertySource in value['propertySources'] if propertySource['name'] == "https://github.com/github/application-dev.yaml"])
         self.assertTrue({"secret": "password"} in [propertySource['source'] for propertySource in value['propertySources'] if propertySource['name'] == "vault:test,dev"])
-        value = await configserver.appprofile(prefix="config", application="test",
+        value = await configserver.endpoint_application_profile(prefix="config", application="test",
                                               profile="prod", x_config_token="token")
         self.assertEqual(len(value['propertySources']), 0)
 

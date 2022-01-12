@@ -1,21 +1,18 @@
+import getopt
+import os
+import sys
+from collections.abc import MutableMapping
 from typing import Optional
-from fastapi import FastAPI, Header, Response
-from github import Github
+
 import github
 import hvac
-import os
 import yaml
-from collections.abc import MutableMapping
-import configreader
-import sys
-import getopt
+from fastapi import FastAPI, Header, Response
+from github import Github
 
-synopsis = "configserver.py -c <configfile>"
-githubtoken = (
-    "REPLACE FOR LOCAL TESTING"
-    if not "GITHUB_TOKEN" in os.environ
-    else os.environ["GITHUB_TOKEN"]
-)
+import configreader
+
+githubtoken = "" if not "GITHUB_TOKEN" in os.environ else os.environ["VAULT_TOKEN"]
 g = Github(login_or_token=githubtoken)
 fileendings = ["yaml", "yml", "properties"]
 
@@ -35,13 +32,22 @@ app = FastAPI()
 
 
 @app.get("/{application}/{profile}/{label}")
-async def allPara(
+async def endpoint_application_profile_label(
     application: str,
     profile: str,
     label: str,
     prefix: Optional[str] = Header("default"),
     x_config_token: Optional[str] = Header(None),
 ):
+    """
+    The offered endpoint implements the basic feature of the spring cloud config server with an added label field. The label reflects in case of git/github the source of a ref/branch.
+    :param application: The name of the application which needs the application configuration.
+    :param profile: The profile (comma separated) that should be loaded from git and vault.
+    :param label: The label (comma separated) that should be loaded from git. Vault does not support multiple labels.
+    :param prefix: This is a multi profile implementation of the configserver. Depending on this value a different profile from the configuration file is loaded.
+    :param x_config_token: In case of the requirement to load values from vault, a header field is added to the http request which has access permissions to the secrets in vault.
+    :return: The results contain an ordered set of source configurations from git and vault.
+    """
     results = await combine(
         applications=[application, "application"],
         profiles=profile.split(","),
@@ -61,7 +67,7 @@ async def allPara(
 
 
 @app.get("/{application}/{profile}")
-async def appprofile(
+async def endpoint_application_profile(
     application: str,
     profile: str,
     prefix: Optional[str] = Header("default"),
@@ -86,7 +92,7 @@ async def appprofile(
 
 
 @app.get("/{application}-{profile}.{fileending}")
-async def appprofile_file(
+async def endpoint_application_profile_fileending(
     application: str,
     profile: str,
     fileending: str,
@@ -101,23 +107,15 @@ async def appprofile_file(
         github=configreader.getConfig()[prefix]["github"],
         vault=configreader.getConfig()[prefix]["vault"],
     )
+    content = {
+        key: value for res in reversed(results) for key, value in res["source"].items()
+    }
     if fileending == "properties":
-        # content = [f"{key}={value} ({res['name']})" for res in results for key, value in res['source'].items()]
-        content = {
-            key: value
-            for res in reversed(results)
-            for key, value in res["source"].items()
-        }
         c = [f"{key}={value}" for key, value in content.items()]
         return Response(content="\n".join(c), media_type="application/text")
     elif fileending == "yml" or fileending == "yaml":
-        c = {
-            key: value
-            for res in reversed(results)
-            for key, value in res["source"].items()
-        }
         return Response(
-            content=yaml.dump(generateWideMap(c)), media_type="application/x-yaml"
+            content=yaml.dump(generateWideMap(content)), media_type="application/x-yaml"
         )
     elif fileending == "json":
         c = {
@@ -137,7 +135,7 @@ async def appprofile_file(
 
 
 @app.get("/{application}.{fileending}")
-async def appprofile_file(
+async def endpoint_application_fileending(
     application: str,
     fileending: str,
     prefix: Optional[str] = Header("default"),
